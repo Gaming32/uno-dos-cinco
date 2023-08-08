@@ -1,0 +1,27 @@
+plugins {
+    kotlin("jvm") version "1.9.0"
+}
+
+group = "io.github.prcraftmc"
+version = "1.0-SNAPSHOT"
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+//    api("it.unimi.dsi:fastutil-core:8.5.12")
+
+    api("io.ktor:ktor-network:2.3.3")
+
+    api("io.github.oshai:kotlin-logging-jvm:5.0.1")
+    api("org.slf4j:slf4j-api:2.0.7")
+    implementation("org.apache.logging.log4j:log4j-slf4j2-impl:2.20.0")
+    implementation("org.apache.logging.log4j:log4j-core:2.20.0")
+
+    implementation("org.jetbrains.kotlinx:kotlinx-cli:0.3.5")
+}
+
+kotlin {
+    jvmToolchain(8)
+}
