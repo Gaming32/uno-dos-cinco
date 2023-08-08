@@ -13,5 +13,5 @@ data class BeginAuthPacket(val authId: String) : Packet(2) {
         output.writeMcString(authId)
     }
 
-    override fun handle(listener: PacketListener) = listener.handleBeginAuth(this)
+    override suspend fun handle(listener: PacketListener) = listener.handleBeginAuth(this)
 }

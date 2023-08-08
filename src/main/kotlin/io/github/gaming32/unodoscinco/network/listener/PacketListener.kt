@@ -8,13 +8,15 @@ abstract class PacketListener(val manager: ClientManager) {
         throw UnsupportedOperationException("${javaClass.simpleName} cannot handle ${packet.javaClass.simpleName}")
     }
 
-    open fun handleKeepAlive(packet: KeepAlivePacket) = handleWithException(packet)
+    open suspend fun handleKeepAlive(packet: KeepAlivePacket) = handleWithException(packet)
 
-    open fun handleLogin(packet: LoginPacket) = handleWithException(packet)
+    open suspend fun handleLogin(packet: LoginPacket) = handleWithException(packet)
 
-    open fun handleBeginAuth(packet: BeginAuthPacket) = handleWithException(packet)
+    open suspend fun handleBeginAuth(packet: BeginAuthPacket) = handleWithException(packet)
 
-    open fun handleDisconnect(packet: DisconnectPacket) = handleWithException(packet)
+    open suspend fun handleDisconnect(packet: DisconnectPacket) = handleWithException(packet)
 
-    open fun handleStatus(packet: StatusPacket) = handleWithException(packet)
+    open suspend fun handleStatus(packet: StatusPacket) = handleWithException(packet)
+
+    open fun printName() = manager.socket.remoteAddress.toString()
 }

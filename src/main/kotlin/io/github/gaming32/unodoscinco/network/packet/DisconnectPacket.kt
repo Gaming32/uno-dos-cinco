@@ -13,5 +13,5 @@ data class DisconnectPacket(val reason: String) : Packet(255) {
         output.writeMcString(reason)
     }
 
-    override fun handle(listener: PacketListener) = listener.handleDisconnect(this)
+    override suspend fun handle(listener: PacketListener) = listener.handleDisconnect(this)
 }

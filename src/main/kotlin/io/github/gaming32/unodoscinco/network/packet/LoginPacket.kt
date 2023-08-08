@@ -39,5 +39,5 @@ data class LoginPacket(
         output.writeByte(maxPlayers.toInt())
     }
 
-    override fun handle(listener: PacketListener) = listener.handleLogin(this)
+    override suspend fun handle(listener: PacketListener) = listener.handleLogin(this)
 }

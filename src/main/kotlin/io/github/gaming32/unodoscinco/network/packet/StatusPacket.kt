@@ -6,5 +6,5 @@ import java.io.DataOutputStream
 data object StatusPacket : Packet(254) {
     override fun write(output: DataOutputStream) = Unit
 
-    override fun handle(listener: PacketListener) = listener.handleStatus(this)
+    override suspend fun handle(listener: PacketListener) = listener.handleStatus(this)
 }

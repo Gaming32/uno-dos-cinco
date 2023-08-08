@@ -78,7 +78,8 @@ class MinecraftServer : Runnable {
             logger.info { "Listening on ${serverSocket.localAddress}" }
             while (true) {
                 val socket = serverSocket.accept()
-                runBlocking {
+                logger.info { "Received connection from ${socket.remoteAddress}" }
+                launch {
                     ClientManager(this@MinecraftServer, socket).run()
                 }
             }

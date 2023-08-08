@@ -11,5 +11,5 @@ data class KeepAlivePacket(val id: Int) : Packet(0) {
         output.writeInt(id)
     }
 
-    override fun handle(listener: PacketListener) = listener.handleKeepAlive(this)
+    override suspend fun handle(listener: PacketListener) = listener.handleKeepAlive(this)
 }

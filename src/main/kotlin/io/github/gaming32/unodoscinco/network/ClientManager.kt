@@ -6,6 +6,7 @@ import io.github.gaming32.unodoscinco.network.packet.DisconnectPacket
 import io.github.gaming32.unodoscinco.network.packet.Packet
 import io.github.gaming32.unodoscinco.util.CloseGuardInputStream
 import io.github.oshai.kotlinlogging.KotlinLogging
+import io.github.oshai.kotlinlogging.Level
 import io.ktor.network.sockets.*
 import io.ktor.utils.io.*
 import io.ktor.utils.io.jvm.javaio.*
@@ -35,9 +36,8 @@ class ClientManager(val server: MinecraftServer, val socket: Socket) {
                 }.handle(listener)
             }
         } catch (e: Exception) {
-            logger.error(e) { "Exception in packet handling" }
-            sendPacketAsync(DisconnectPacket(e.toString()))
-            writeChannel.close()
+            logger.debug(e) { "Exception in packet handling" }
+            kickAsync(e.toString())
         }
     }
 
@@ -52,4 +52,14 @@ class ClientManager(val server: MinecraftServer, val socket: Socket) {
         val bytes = packet.toByteArray()
         return server.networkingScope.launch { send(bytes) }
     }
+
+    suspend fun kickAsync(reason: String, log: Boolean = true) {
+        logger.at(if (log) Level.INFO else Level.DEBUG) {
+            message = "Kicked ${listener.printName()} for reason \"$reason\""
+        }
+        sendPacketAsync(DisconnectPacket(reason))
+        writeChannel.close()
+    }
+
+    fun kick(reason: String, log: Boolean = true) = server.networkingScope.launch { kickAsync(reason) }
 }

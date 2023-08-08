@@ -15,7 +15,7 @@ abstract class Packet(val packetId: UByte) {
 
     abstract fun write(output: DataOutputStream)
 
-    abstract fun handle(listener: PacketListener)
+    abstract suspend fun handle(listener: PacketListener)
 
     fun toByteArray(): ByteArray {
         val baos = ByteArrayOutputStream()
