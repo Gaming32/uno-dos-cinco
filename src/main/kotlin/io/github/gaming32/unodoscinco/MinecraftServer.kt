@@ -1,6 +1,7 @@
 package io.github.gaming32.unodoscinco
 
 import io.github.gaming32.unodoscinco.network.ClientManager
+import io.github.gaming32.unodoscinco.network.listener.LoginPacketListener
 import io.github.oshai.kotlinlogging.KotlinLogging
 import io.ktor.network.selector.*
 import io.ktor.network.sockets.*
@@ -23,11 +24,15 @@ class MinecraftServer : Runnable {
 
     val port = 25565 // TODO: replace me with proper config
 
-    val commandQueue = LinkedBlockingQueue<String>()
     var running = true
 
+    val loginClients = mutableSetOf<LoginPacketListener>()
+
+    private val scheduledPacketTasks = LinkedBlockingQueue<() -> Unit>()
+    private val scheduledTasks = LinkedBlockingQueue<() -> Unit>()
+
     override fun run() {
-        logger.info { "Starting server" }
+        logger.info { "Server starting" }
         val startBeginTime = System.currentTimeMillis()
 
         timerHack()
@@ -37,24 +42,49 @@ class MinecraftServer : Runnable {
         val startTotalTime = System.currentTimeMillis() - startBeginTime
         logger.info { "Server started in ${startTotalTime.milliseconds}" }
 
+        var targetTickEnd = System.currentTimeMillis() + 50
         while (running) {
-            val startTick = System.currentTimeMillis()
-            runTick()
-            Thread.sleep(50 - System.currentTimeMillis() + startTick)
+            runTick(targetTickEnd)
+            val time = System.currentTimeMillis()
+            if (targetTickEnd > time) {
+                Thread.sleep(targetTickEnd - time)
+            }
+            targetTickEnd += 50
         }
 
-        logger.info { "Stopping server" }
+        logger.info { "Server stopping" }
     }
 
-    private fun runTick() {
+    private fun runTick(targetTickEnd: Long) {
+        loginClients.forEach(LoginPacketListener::tick)
         while (true) {
-            val command = commandQueue.poll() ?: break
-            if (command == "stop") {
-                running = false
-            } else {
-                logger.info { "Unknown command \"$command\"" }
-            }
+            val task = scheduledPacketTasks.poll() ?: break
+            task()
         }
+
+        // TODO: Actual ticking
+
+        while (System.currentTimeMillis() < targetTickEnd) {
+            val task = scheduledTasks.poll() ?: break
+            task()
+        }
+    }
+
+    fun handleCommand(command: String, outputHandler: (() -> String) -> Unit) {
+        if (command == "stop") {
+            outputHandler { "Stopping server" }
+            running = false
+        } else {
+            outputHandler { "Unknown command \"$command\"" }
+        }
+    }
+
+    fun schedulePacketHandle(task: () -> Unit) {
+        scheduledPacketTasks += task
+    }
+
+    fun scheduleTask(task: () -> Unit) {
+        scheduledTasks += task
     }
 
     private fun timerHack() = thread(
@@ -69,7 +99,10 @@ class MinecraftServer : Runnable {
         isDaemon = true
     ) {
         while (true) {
-            commandQueue += readlnOrNull() ?: break
+            val command = readlnOrNull() ?: break
+            scheduleTask {
+                handleCommand(command, logger::info)
+            }
         }
     }
 
