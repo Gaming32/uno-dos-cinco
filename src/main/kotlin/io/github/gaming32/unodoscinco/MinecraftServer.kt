@@ -52,7 +52,7 @@ class MinecraftServer : Runnable {
             targetTickEnd += 50
         }
 
-        logger.info { "Server stopping" }
+        logger.info { "Server stopped" }
     }
 
     private fun runTick(targetTickEnd: Long) {

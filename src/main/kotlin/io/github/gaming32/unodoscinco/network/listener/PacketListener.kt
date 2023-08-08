@@ -19,4 +19,6 @@ abstract class PacketListener(val manager: ClientManager) {
     open suspend fun handleStatus(packet: StatusPacket) = handleWithException(packet)
 
     open fun printName() = manager.socket.remoteAddress.toString()
+
+    protected fun mainThread(action: () -> Unit) = manager.server.schedulePacketHandle(action)
 }
