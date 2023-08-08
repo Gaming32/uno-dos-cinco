@@ -1,5 +1,6 @@
 package io.github.gaming32.unodoscinco
 
+import io.github.gaming32.unodoscinco.level.ServerLevel
 import io.github.gaming32.unodoscinco.network.ClientManager
 import io.github.gaming32.unodoscinco.network.listener.LoginPacketListener
 import io.github.oshai.kotlinlogging.KotlinLogging
@@ -22,6 +23,9 @@ class MinecraftServer : Runnable {
         }
     }.asCoroutineDispatcher())
 
+    lateinit var thread: Thread
+        private set
+
     val port = 25565 // TODO: replace me with proper config
 
     var running = true
@@ -29,15 +33,27 @@ class MinecraftServer : Runnable {
     val loginClients = mutableSetOf<LoginPacketListener>()
 
     private val scheduledPacketTasks = LinkedBlockingQueue<() -> Unit>()
-    private val scheduledTasks = LinkedBlockingQueue<() -> Unit>()
+    private val scheduledTasks = LinkedBlockingQueue<TickTask>()
+
+    private val _levels = mutableMapOf<Int, ServerLevel>()
+    val levels: Map<Int, ServerLevel> get() = _levels
+
+    val overworld get() = _levels.getValue(0)
+
+    var tickCount = 0
+        private set
 
     override fun run() {
+        thread = Thread.currentThread()
+
         logger.info { "Server starting" }
         val startBeginTime = System.currentTimeMillis()
 
         timerHack()
-        readCommands()
         listen()
+        initLevels()
+        prepareLevel()
+        readCommands()
 
         val startTotalTime = System.currentTimeMillis() - startBeginTime
         logger.info { "Server started in ${startTotalTime.milliseconds}" }
@@ -50,9 +66,22 @@ class MinecraftServer : Runnable {
                 Thread.sleep(targetTickEnd - time)
             }
             targetTickEnd += 50
+            if (time - targetTickEnd > 500) {
+                targetTickEnd = time + 100
+            }
+            tickCount++
         }
 
         logger.info { "Server stopped" }
+    }
+
+    private fun initLevels() {
+        _levels[0] = ServerLevel()
+        _levels[-1] = ServerLevel()
+        _levels[1] = ServerLevel()
+    }
+
+    private fun prepareLevel() {
     }
 
     private fun runTick(targetTickEnd: Long) {
@@ -64,9 +93,14 @@ class MinecraftServer : Runnable {
 
         // TODO: Actual ticking
 
-        while (System.currentTimeMillis() < targetTickEnd) {
-            val task = scheduledTasks.poll() ?: break
-            task()
+        while (true) {
+            val task = scheduledTasks.peek() ?: break
+            if (System.currentTimeMillis() < targetTickEnd || tickCount - task.tick > 3) {
+                task.action()
+                scheduledTasks.remove()
+            } else {
+                break
+            }
         }
     }
 
@@ -84,7 +118,15 @@ class MinecraftServer : Runnable {
     }
 
     fun scheduleTask(task: () -> Unit) {
-        scheduledTasks += task
+        scheduledTasks += TickTask(tickCount, task)
+    }
+
+    fun runOrScheduleTask(task: () -> Unit) {
+        if (Thread.currentThread() == thread) {
+            task()
+        } else {
+            scheduleTask(task)
+        }
     }
 
     private fun timerHack() = thread(
@@ -118,6 +160,8 @@ class MinecraftServer : Runnable {
             }
         }
     }
+
+    private data class TickTask(val tick: Int, val action: () -> Unit)
 }
 
 fun main(args: Array<String>) {

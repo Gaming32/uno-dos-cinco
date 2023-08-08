@@ -19,14 +19,15 @@ abstract class Chunk {
         setBlockMetadata(x, y, z, state.metadata)
     }
 
-    open fun getBlockId(pos: BlockPos) = getBlockId(pos.x and 0xf, pos.y, pos.z and 0xf)
+    open fun getBlockId(pos: BlockPos) = getBlockId(pos.x, pos.y, pos.z)
 
-    open fun setBlockId(pos: BlockPos, id: Int) = setBlockId(pos.x and 0xf, pos.y, pos.z and 0xf, id)
+    open fun setBlockId(pos: BlockPos, id: Int) = setBlockId(pos.x, pos.y, pos.z, id)
 
-    open fun getBlockMetadata(pos: BlockPos) = getBlockMetadata(pos.x and 0xf, pos.y, pos.z and 0xf)
+    open fun getBlockMetadata(pos: BlockPos) = getBlockMetadata(pos.x, pos.y, pos.z)
 
-    open fun setBlockMetadata(pos: BlockPos, value: Int) = setBlockMetadata(pos.x and 0xf, pos.y, pos.z and 0xf, value)
+    open fun setBlockMetadata(pos: BlockPos, value: Int) = setBlockMetadata(pos.x, pos.y, pos.z, value)
 
-    open fun setBlockState(pos: BlockPos, state: BlockState) =
-        setBlockState(pos.x and 0xf, pos.y, pos.z and 0xf, state)
+    open fun getBlockState(pos: BlockPos) = getBlockState(pos.x, pos.y, pos.z)
+
+    open fun setBlockState(pos: BlockPos, state: BlockState) = setBlockState(pos.x, pos.y, pos.z, state)
 }

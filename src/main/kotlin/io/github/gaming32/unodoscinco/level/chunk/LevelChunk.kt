@@ -10,12 +10,12 @@ class LevelChunk(val x: Int, val z: Int) : Chunk() {
             return 0
         }
         val section = sections[y shr 4] ?: return 0
-        return section.getBlockId(x, y and 0xf, z)
+        return section.getBlockId(x and 0xf, y and 0xf, z and 0xf)
     }
 
     override fun setBlockId(x: Int, y: Int, z: Int, id: Int) {
         if (y !in 0..255) return
-        getOrCreateSection(y).setBlockId(x, y, z, id)
+        getOrCreateSection(y).setBlockId(x and 0xf, y and 0xf, z and 0xf, id)
     }
 
     override fun getBlockMetadata(x: Int, y: Int, z: Int): Int {
@@ -23,12 +23,12 @@ class LevelChunk(val x: Int, val z: Int) : Chunk() {
             return 0
         }
         val section = sections[y shr 4] ?: return 0
-        return section.getBlockMetadata(x, y and 0xf, z)
+        return section.getBlockMetadata(x and 0xf, y and 0xf, z and 0xf)
     }
 
     override fun setBlockMetadata(x: Int, y: Int, z: Int, value: Int) {
         if (y !in 0..255) return
-        getOrCreateSection(y).setBlockMetadata(x, y, z, value)
+        getOrCreateSection(y).setBlockMetadata(x and 0xf, y and 0xf, z and 0xf, value)
     }
 
     override fun getBlockState(x: Int, y: Int, z: Int): BlockState {
@@ -36,14 +36,17 @@ class LevelChunk(val x: Int, val z: Int) : Chunk() {
             return BlockState.Air
         }
         val section = sections[y shr 4] ?: return BlockState.Air
-        return BlockState(section.getBlockId(x, y and 0xf, z), section.getBlockMetadata(x, y and 0xf, z))
+        return BlockState(
+            section.getBlockId(x and 0xf, y and 0xf, z and 0xf),
+            section.getBlockMetadata(x and 0xf, y and 0xf, z and 0xf)
+        )
     }
 
     override fun setBlockState(x: Int, y: Int, z: Int, state: BlockState) {
         if (y !in 0..255) return
         val section = getOrCreateSection(y)
-        section.setBlockId(x, y and 0xf, z, state.block)
-        section.setBlockMetadata(x, y and 0xf, z, state.metadata)
+        section.setBlockId(x and 0xf, y and 0xf, z and 0xf, state.block)
+        section.setBlockMetadata(x and 0xf, y and 0xf, z and 0xf, state.metadata)
     }
 
     private fun getOrCreateSection(y: Int): BlockSection {

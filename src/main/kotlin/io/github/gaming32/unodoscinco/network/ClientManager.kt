@@ -11,6 +11,8 @@ import io.ktor.network.sockets.*
 import io.ktor.utils.io.*
 import io.ktor.utils.io.jvm.javaio.*
 import kotlinx.coroutines.*
+import kotlinx.coroutines.channels.ClosedReceiveChannelException
+import kotlinx.coroutines.channels.ClosedSendChannelException
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import java.io.DataInputStream
@@ -36,8 +38,10 @@ class ClientManager(val server: MinecraftServer, val socket: Socket) {
                 }.handle(listener)
             }
         } catch (e: Exception) {
-            logger.debug(e) { "Exception in packet handling" }
-            kickAsync(e.toString())
+            if (e !is ClosedReceiveChannelException && e !is ClosedSendChannelException) {
+                logger.debug(e) { "Exception in packet handling" }
+                kickAsync(e.toString())
+            }
         }
     }
 
@@ -61,5 +65,5 @@ class ClientManager(val server: MinecraftServer, val socket: Socket) {
         writeChannel.close()
     }
 
-    fun kick(reason: String, log: Boolean = true) = server.networkingScope.launch { kickAsync(reason) }
+    fun kick(reason: String, log: Boolean = true) = server.networkingScope.launch { kickAsync(reason, log) }
 }
