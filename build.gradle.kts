@@ -20,6 +20,16 @@ dependencies {
     implementation("org.apache.logging.log4j:log4j-core:2.20.0")
 
     implementation("org.jetbrains.kotlinx:kotlinx-cli:0.3.5")
+
+    implementation("org.jetbrains.kotlin:kotlin-scripting-common:1.9.0")
+    implementation("org.jetbrains.kotlin:kotlin-scripting-jvm:1.9.0")
+    implementation("org.jetbrains.kotlin:kotlin-scripting-jvm-host:1.9.0")
+
+    implementation("net.kyori:adventure-api:4.14.0")
+    implementation("net.kyori:adventure-extra-kotlin:4.14.0")
+    implementation("net.kyori:adventure-text-serializer-ansi:4.14.0")
+    implementation("net.kyori:adventure-text-serializer-legacy:4.14.0")
+    implementation("net.kyori:adventure-text-serializer-plain:4.14.0")
 }
 
 kotlin {

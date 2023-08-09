@@ -1,5 +1,10 @@
 package io.github.gaming32.unodoscinco
 
+import io.github.gaming32.unodoscinco.command.CommandContext
+import io.github.gaming32.unodoscinco.command.ConsoleOutputListener
+import io.github.gaming32.unodoscinco.config.ConfigErrorException
+import io.github.gaming32.unodoscinco.config.ServerConfig
+import io.github.gaming32.unodoscinco.config.evalConfigFile
 import io.github.gaming32.unodoscinco.level.ServerLevel
 import io.github.gaming32.unodoscinco.network.ClientManager
 import io.github.gaming32.unodoscinco.network.listener.LoginPacketListener
@@ -8,9 +13,14 @@ import io.ktor.network.selector.*
 import io.ktor.network.sockets.*
 import kotlinx.cli.ArgParser
 import kotlinx.coroutines.*
+import kotlinx.coroutines.future.await
+import java.nio.file.Files
+import java.util.concurrent.CompletableFuture
 import java.util.concurrent.Executors
 import java.util.concurrent.LinkedBlockingQueue
 import kotlin.concurrent.thread
+import kotlin.io.path.Path
+import kotlin.io.path.isRegularFile
 import kotlin.time.Duration.Companion.milliseconds
 
 private val logger = KotlinLogging.logger {}
@@ -23,17 +33,19 @@ class MinecraftServer : Runnable {
         }
     }.asCoroutineDispatcher())
 
-    lateinit var thread: Thread
+    val configFile = Path("config.udc.kts")
+    var config: ServerConfig = ServerConfig.PreConfig
         private set
 
-    val port = 25565 // TODO: replace me with proper config
+    lateinit var mainThread: Thread
+        private set
 
     var running = true
 
     val loginClients = mutableSetOf<LoginPacketListener>()
 
     private val scheduledPacketTasks = LinkedBlockingQueue<() -> Unit>()
-    private val scheduledTasks = LinkedBlockingQueue<TickTask>()
+    private val scheduledTasks = LinkedBlockingQueue<TickTask<*>>()
 
     private val _levels = mutableMapOf<Int, ServerLevel>()
     val levels: Map<Int, ServerLevel> get() = _levels
@@ -44,10 +56,17 @@ class MinecraftServer : Runnable {
         private set
 
     override fun run() {
-        thread = Thread.currentThread()
+        mainThread = Thread.currentThread()
 
         logger.info { "Server starting" }
         val startBeginTime = System.currentTimeMillis()
+
+        try {
+            runBlocking { reloadConfig() }
+        } catch (e: ConfigErrorException) {
+            return
+        }
+        logger.info { "Loaded config" }
 
         timerHack()
         listen()
@@ -104,12 +123,29 @@ class MinecraftServer : Runnable {
         }
     }
 
-    fun handleCommand(command: String, outputHandler: (() -> String) -> Unit) {
-        if (command == "stop") {
-            outputHandler { "Stopping server" }
-            running = false
-        } else {
-            outputHandler { "Unknown command \"$command\"" }
+    fun handleCommand(command: String, context: CommandContext) {
+        when (command) {
+            "stop" -> {
+                context.listener.infoText { "Stopping server" }
+                running = false
+            }
+            "reload" -> {
+                context.listener.infoText { "Reloading config" }
+                @OptIn(DelicateCoroutinesApi::class)
+                GlobalScope.launch {
+                    val start = System.currentTimeMillis()
+                    try {
+                        reloadConfig(false)
+                    } catch (e: ConfigErrorException) {
+                        return@launch context.listener.errorText(
+                            "Failed to reload config:\n" + e.message?.prependIndent("   ")
+                        )
+                    }
+                    val time = System.currentTimeMillis() - start
+                    context.listener.infoText { "Reloaded config in ${time.milliseconds}" }
+                }
+            }
+            else -> context.listener.errorText("Unknown command \"$command\"")
         }
     }
 
@@ -117,17 +153,25 @@ class MinecraftServer : Runnable {
         scheduledPacketTasks += task
     }
 
-    fun scheduleTask(task: () -> Unit) {
-        scheduledTasks += TickTask(tickCount, task)
+    fun scheduleTask(force: Boolean = false, task: () -> Unit) {
+        if (!force && Thread.currentThread() == mainThread) {
+            return task()
+        }
+        scheduledTasks += TickTask(tickCount, task, null)
     }
 
-    fun runOrScheduleTask(task: () -> Unit) {
-        if (Thread.currentThread() == thread) {
-            task()
-        } else {
-            scheduleTask(task)
+    fun <T> scheduleTaskFuture(force: Boolean = false, task: () -> T): CompletableFuture<T> {
+        if (!force && Thread.currentThread() == mainThread) {
+            return CompletableFuture.completedFuture(task())
         }
+        val future = CompletableFuture<T>()
+        scheduledTasks += TickTask(tickCount, task, future)
+        return future
     }
+
+    fun <T> scheduleTaskAndWait(task: () -> T): T = scheduleTaskFuture(false, task).join()
+
+    suspend fun <T> scheduleTaskAndWaitAsync(task: () -> T): T = scheduleTaskFuture(false, task).await()
 
     private fun timerHack() = thread(
         name = "TimerHack",
@@ -143,13 +187,13 @@ class MinecraftServer : Runnable {
         while (true) {
             val command = readlnOrNull() ?: break
             scheduleTask {
-                handleCommand(command, logger::info)
+                handleCommand(command, CommandContext(ConsoleOutputListener))
             }
         }
     }
 
     private fun listen() = networkingScope.launch {
-        aSocket(SelectorManager(Dispatchers.IO)).tcp().bind(port = port).use { serverSocket ->
+        aSocket(SelectorManager(Dispatchers.IO)).tcp().bind(config.serverIp, config.serverPort).use { serverSocket ->
             logger.info { "Listening on ${serverSocket.localAddress}" }
             while (true) {
                 val socket = serverSocket.accept()
@@ -161,7 +205,21 @@ class MinecraftServer : Runnable {
         }
     }
 
-    private data class TickTask(val tick: Int, val action: () -> Unit)
+    suspend fun reloadConfig(printError: Boolean = true) {
+        if (!configFile.isRegularFile()) {
+            javaClass.getResourceAsStream("/config.udc.kts")?.use { Files.copy(it, configFile) }
+        }
+        try {
+            config = evalConfigFile(configFile.toFile())
+        } catch (e: ConfigErrorException) {
+            if (printError) {
+                logger.error { "Failed to read config:\n" + e.message?.prependIndent("   ") }
+            }
+            throw e
+        }
+    }
+
+    private data class TickTask<T>(val tick: Int, val action: () -> T, val future: CompletableFuture<T>?)
 }
 
 fun main(args: Array<String>) {
