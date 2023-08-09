@@ -11,7 +11,7 @@ fun DataInputStream.readMcString(maxLength: Int): String {
     if (length < 0) {
         throw IllegalArgumentException("String length is less than zero! $length < 0")
     }
-    return String(ByteArray(length).also(this::readFully), Charsets.UTF_16BE)
+    return String(ByteArray(2 * length).also(this::readFully), Charsets.UTF_16BE)
 }
 
 fun DataOutputStream.writeMcString(s: String) {

@@ -68,6 +68,13 @@ class MinecraftServer : Runnable {
         }
         logger.info { "Loaded config" }
 
+        if (!config.onlineMode) {
+            logger.warn { "*** SERVER IS IN OFFLINE MODE" }
+            logger.warn { "*** Players can log in as whoever they chose." }
+            logger.warn { "*** It is recommended to set onlineMode to true in config.udc.kts." }
+            logger.warn { "*** Unlike Vanilla, we backport modern auth, so there is no reason to use offline mode." }
+        }
+
         timerHack()
         listen()
         initLevels()

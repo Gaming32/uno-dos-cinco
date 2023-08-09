@@ -4,9 +4,9 @@ import io.github.gaming32.unodoscinco.network.ClientManager
 import io.github.gaming32.unodoscinco.network.packet.*
 
 abstract class PacketListener(val manager: ClientManager) {
-    private fun handleWithException(packet: Packet) {
-        throw UnsupportedOperationException("${javaClass.simpleName} cannot handle ${packet.javaClass.simpleName}")
-    }
+    protected abstract suspend fun handleWithException(packet: Packet)
+
+    abstract suspend fun onKick(reason: String)
 
     open suspend fun handleKeepAlive(packet: KeepAlivePacket) = handleWithException(packet)
 

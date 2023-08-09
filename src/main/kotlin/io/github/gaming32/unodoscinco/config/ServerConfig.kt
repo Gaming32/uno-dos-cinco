@@ -1,8 +1,10 @@
 package io.github.gaming32.unodoscinco.config
 
+import io.github.gaming32.unodoscinco.config.frontendapi.path
 import io.github.gaming32.unodoscinco.level.BlockState
 import io.github.gaming32.unodoscinco.world.TerrainType
 import net.kyori.adventure.text.Component
+import java.nio.file.Path
 import kotlin.script.experimental.annotations.KotlinScript
 
 typealias MotdCreator = suspend MotdCreationContext.() -> String
@@ -34,7 +36,13 @@ abstract class ServerConfig {
     var simulationDistance: Int = 10
         protected set
 
+    var worldDir: Path = path("world")
+        protected set
+
     var maxPlayers: Int = 20
+        protected set
+
+    var onlineMode: Boolean = true
         protected set
 
     var seed: Long? = null
