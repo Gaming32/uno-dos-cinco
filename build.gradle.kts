@@ -13,6 +13,10 @@ dependencies {
 //    api("it.unimi.dsi:fastutil-core:8.5.12")
 
     api("io.ktor:ktor-network:2.3.3")
+    implementation("io.ktor:ktor-client-core:2.3.3")
+    implementation("io.ktor:ktor-client-cio:2.3.3")
+    implementation("io.ktor:ktor-client-content-negotiation:2.3.3")
+    implementation("io.ktor:ktor-serialization-gson:2.3.3")
 
     api("io.github.oshai:kotlin-logging-jvm:5.0.1")
     api("org.slf4j:slf4j-api:2.0.7")
@@ -25,11 +29,13 @@ dependencies {
     implementation("org.jetbrains.kotlin:kotlin-scripting-jvm:1.9.0")
     implementation("org.jetbrains.kotlin:kotlin-scripting-jvm-host:1.9.0")
 
-    implementation("net.kyori:adventure-api:4.14.0")
-    implementation("net.kyori:adventure-extra-kotlin:4.14.0")
-    implementation("net.kyori:adventure-text-serializer-ansi:4.14.0")
-    implementation("net.kyori:adventure-text-serializer-legacy:4.14.0")
-    implementation("net.kyori:adventure-text-serializer-plain:4.14.0")
+    api("net.kyori:adventure-api:4.14.0")
+    api("net.kyori:adventure-extra-kotlin:4.14.0")
+    api("net.kyori:adventure-text-serializer-ansi:4.14.0")
+    api("net.kyori:adventure-text-serializer-legacy:4.14.0")
+    api("net.kyori:adventure-text-serializer-plain:4.14.0")
+
+    api("com.google.code.gson:gson:2.10.1")
 }
 
 kotlin {

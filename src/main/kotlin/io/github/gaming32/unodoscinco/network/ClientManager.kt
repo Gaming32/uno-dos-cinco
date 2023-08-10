@@ -2,6 +2,7 @@ package io.github.gaming32.unodoscinco.network
 
 import io.github.gaming32.unodoscinco.MinecraftServer
 import io.github.gaming32.unodoscinco.network.listener.LoginPacketListener
+import io.github.gaming32.unodoscinco.network.listener.PacketListener
 import io.github.gaming32.unodoscinco.network.packet.DisconnectPacket
 import io.github.gaming32.unodoscinco.network.packet.Packet
 import io.github.gaming32.unodoscinco.util.CloseGuardInputStream
@@ -22,7 +23,8 @@ class ClientManager(val server: MinecraftServer, val socket: Socket) : AutoClose
     val readChannel = socket.openReadChannel()
     val writeChannel = socket.openWriteChannel()
 
-    var listener = LoginPacketListener(this)
+    var listener: PacketListener = LoginPacketListener(this)
+        private set
 
     private val sendLock = Mutex()
 
@@ -43,6 +45,8 @@ class ClientManager(val server: MinecraftServer, val socket: Socket) : AutoClose
                 logger.debug(e) { "Exception in packet handling" }
                 kickAsync(e.toString())
             }
+        } finally {
+            (listener as? LoginPacketListener)?.let(server.loginClients::remove)
         }
     }
 

@@ -9,13 +9,20 @@ import io.github.gaming32.unodoscinco.level.ServerLevel
 import io.github.gaming32.unodoscinco.network.ClientManager
 import io.github.gaming32.unodoscinco.network.listener.LoginPacketListener
 import io.github.oshai.kotlinlogging.KotlinLogging
+import io.ktor.client.*
+import io.ktor.client.engine.cio.*
+import io.ktor.client.plugins.*
+import io.ktor.client.plugins.contentnegotiation.*
+import io.ktor.http.*
 import io.ktor.network.selector.*
 import io.ktor.network.sockets.*
+import io.ktor.serialization.gson.*
 import kotlinx.cli.ArgParser
 import kotlinx.coroutines.*
 import kotlinx.coroutines.future.await
 import java.nio.file.Files
 import java.util.concurrent.CompletableFuture
+import java.util.concurrent.CopyOnWriteArraySet
 import java.util.concurrent.Executors
 import java.util.concurrent.LinkedBlockingQueue
 import kotlin.concurrent.thread
@@ -33,6 +40,15 @@ class MinecraftServer : Runnable {
         }
     }.asCoroutineDispatcher())
 
+    val httpClient = HttpClient(CIO) {
+        defaultRequest {
+            userAgent("uno-dos-cinco/${VersionInfo.UNO_DOS_CINCO}")
+        }
+        install(ContentNegotiation) {
+            gson()
+        }
+    }
+
     val configFile = Path("config.udc.kts")
     var config: ServerConfig = ServerConfig.PreConfig
         private set
@@ -40,9 +56,9 @@ class MinecraftServer : Runnable {
     lateinit var mainThread: Thread
         private set
 
-    var running = true
+    private var running = true
 
-    val loginClients = mutableSetOf<LoginPacketListener>()
+    internal val loginClients = CopyOnWriteArraySet<LoginPacketListener>()
 
     private val scheduledPacketTasks = LinkedBlockingQueue<() -> Unit>()
     private val scheduledTasks = LinkedBlockingQueue<TickTask<*>>()
@@ -206,7 +222,9 @@ class MinecraftServer : Runnable {
                 val socket = serverSocket.accept()
                 logger.info { "Received connection from ${socket.remoteAddress}" }
                 launch {
-                    ClientManager(this@MinecraftServer, socket).run()
+                    val manager = ClientManager(this@MinecraftServer, socket)
+                    loginClients += manager.listener as LoginPacketListener
+                    manager.run()
                 }
             }
         }
