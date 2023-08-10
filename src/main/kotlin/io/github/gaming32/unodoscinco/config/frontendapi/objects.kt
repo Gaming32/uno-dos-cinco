@@ -25,3 +25,7 @@ fun path(path: String) = Path(path)
 fun path(path: String, vararg subpaths: String) = Path(path, *subpaths)
 
 operator fun String.div(other: String) = Path(this, other)
+
+fun regex(regex: String) = Regex(regex)
+
+fun regex(regex: String, vararg options: RegexOption) = Regex(regex, options.toSet())

@@ -39,6 +39,9 @@ class LoginPacketListener(manager: ClientManager) : PacketListener(manager) {
         if (tempUsername != null) {
             return manager.kickAsync("Cannot login multiple times!")
         }
+        if (!packet.username.matches(manager.server.config.usernameRegex)) {
+            return manager.kickAsync("Invalid username")
+        }
         tempUsername = packet.username
         if (packet.protocolVersion != VersionInfo.PROTOCOL) {
             return manager.kickAsync(
@@ -57,7 +60,7 @@ class LoginPacketListener(manager: ClientManager) : PacketListener(manager) {
                 parameter("serverId", serverId)
             }
             if (response.status.value != 200) {
-                return manager.kickAsync("Failed to verify username (${response.status.description})")
+                return manager.kickAsync("Failed to verify username")
             }
             val body = response.body<JsonObject>()
             LoginInfo(

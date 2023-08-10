@@ -5,6 +5,7 @@ simulationDistance = 10
 worldDir = path("world")
 maxPlayers = 20
 onlineMode = true
+usernameRegex = regex("[a-zA-Z_][a-zA-Z0-9_]{0,15}")
 seed = null
 motd = "My uno-dos-cinco server"
 terrainType = terrain("default")

@@ -1,6 +1,7 @@
 package io.github.gaming32.unodoscinco.config
 
 import io.github.gaming32.unodoscinco.config.frontendapi.path
+import io.github.gaming32.unodoscinco.config.frontendapi.regex
 import io.github.gaming32.unodoscinco.level.BlockState
 import io.github.gaming32.unodoscinco.world.TerrainType
 import net.kyori.adventure.text.Component
@@ -43,6 +44,9 @@ abstract class ServerConfig {
         protected set
 
     var onlineMode: Boolean = true
+        protected set
+
+    var usernameRegex: Regex = regex("[a-zA-Z_][a-zA-Z0-9_]{0,15}")
         protected set
 
     var seed: Long? = null
