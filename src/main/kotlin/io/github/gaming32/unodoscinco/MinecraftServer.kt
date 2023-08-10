@@ -226,11 +226,10 @@ class MinecraftServer : Runnable {
             while (true) {
                 val socket = serverSocket.accept()
                 logger.info { "Received connection from ${socket.remoteAddress}" }
-                launch {
-                    val manager = ClientManager(this@MinecraftServer, socket)
-                    loginClients += manager.listener as LoginPacketListener
-                    manager.run()
-                }
+                val manager = ClientManager(this@MinecraftServer, socket)
+                loginClients += manager.listener as LoginPacketListener
+                launch { manager.runReceiver() }
+                launch { manager.runSender() }
             }
         }
     }
@@ -253,19 +252,9 @@ class MinecraftServer : Runnable {
         logger.info { "[CHAT]: " + ANSIComponentSerializer.ansi().serialize(message) }
     }
 
-    fun sendChat(message: Component): CompletableFuture<Unit> {
+    fun sendChat(message: Component) {
         printChat(message)
-        return playerList.broadcastPacket(message.toChatPacket())
-    }
-
-    suspend fun sendChatAwait(message: Component) {
-        printChat(message)
-        playerList.broadcastPacketAwait(message.toChatPacket())
-    }
-
-    suspend fun sendChatAsync(scope: CoroutineScope, message: Component) {
-        printChat(message)
-        playerList.broadcastPacketAsync(scope, message.toChatPacket())
+        playerList.broadcastPacket(message.toChatPacket())
     }
 
     private data class TickTask<T>(val tick: Int, val action: () -> T, val future: CompletableFuture<T>?)

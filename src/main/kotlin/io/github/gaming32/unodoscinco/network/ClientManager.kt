@@ -9,11 +9,15 @@ import io.github.oshai.kotlinlogging.KotlinLogging
 import io.ktor.network.sockets.*
 import io.ktor.utils.io.*
 import io.ktor.utils.io.jvm.javaio.*
-import kotlinx.coroutines.*
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.channels.ClosedReceiveChannelException
 import kotlinx.coroutines.channels.ClosedSendChannelException
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.withContext
 import java.io.DataInputStream
 
 private val logger = KotlinLogging.logger {}
@@ -25,8 +29,9 @@ class ClientManager(val server: MinecraftServer, val socket: Socket) : AutoClose
     var listener: PacketListener = LoginPacketListener(this)
 
     private val sendLock = Mutex()
+    private val sendChannel = Channel<Packet>(Channel.UNLIMITED)
 
-    suspend fun run() = coroutineScope {
+    suspend fun runReceiver() = coroutineScope {
         try {
             while (!readChannel.isClosedForRead) {
                 val packetId = readChannel.readByte().toUByte()
@@ -44,8 +49,8 @@ class ClientManager(val server: MinecraftServer, val socket: Socket) : AutoClose
                 packet.handle(listener)
             }
         } catch (e: Exception) {
-            if (e !is ClosedReceiveChannelException && e !is ClosedSendChannelException) {
-                logger.debug(e) { "Exception in packet handling" }
+            if (e !is ClosedReceiveChannelException) {
+                logger.debug(e) { "Exception in packet receiving" }
                 kickAsync(e.toString())
             }
         } finally {
@@ -53,16 +58,33 @@ class ClientManager(val server: MinecraftServer, val socket: Socket) : AutoClose
         }
     }
 
-    private suspend fun send(bytes: ByteArray) = sendLock.withLock {
-        writeChannel.writeFully(bytes)
-        writeChannel.flush()
+    suspend fun runSender() {
+        try {
+            while (true) {
+                val packet = sendChannel.receive().toByteArray()
+                sendLock.withLock {
+                    writeChannel.writeFully(packet)
+                    writeChannel.flush()
+                }
+            }
+        } catch (e: Exception) {
+            if (e !is ClosedSendChannelException) {
+                logger.error(e) { "Exception in packet sending" }
+                // Can't kick!
+            }
+        }
     }
 
-    suspend fun sendPacketAsync(packet: Packet) = send(packet.toByteArray())
+    fun sendPacket(packet: Packet) {
+        sendChannel.trySend(packet)
+    }
 
-    fun sendPacket(packet: Packet): Job {
+    suspend fun sendPacketImmediately(packet: Packet) {
         val bytes = packet.toByteArray()
-        return server.networkingScope.launch { send(bytes) }
+        sendLock.withLock {
+            writeChannel.writeFully(bytes)
+            writeChannel.flush()
+        }
     }
 
     suspend fun kickAsync(reason: String) = listener.onKick(reason)

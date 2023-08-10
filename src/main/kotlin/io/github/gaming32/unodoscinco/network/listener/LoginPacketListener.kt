@@ -36,7 +36,7 @@ class LoginPacketListener(manager: ClientManager) : PacketListener(manager) {
 
     override suspend fun onKick(reason: String) {
         logger.info { "Disconnecting ${printName()}: $reason" }
-        manager.sendPacketAsync(DisconnectPacket(reason))
+        manager.sendPacketImmediately(DisconnectPacket(reason))
         manager.close()
     }
 
@@ -84,7 +84,7 @@ class LoginPacketListener(manager: ClientManager) : PacketListener(manager) {
         } else {
             "-"
         }
-        manager.sendPacketAsync(BeginAuthPacket(serverId))
+        manager.sendPacket(BeginAuthPacket(serverId))
     }
 
     override suspend fun handleStatus(packet: StatusPacket) {
@@ -93,7 +93,7 @@ class LoginPacketListener(manager: ClientManager) : PacketListener(manager) {
         val motd = config.explicitMotd ?: config.motdGenerator(MotdCreationContext(
             server, PingInfo(manager.socket.remoteAddress as InetSocketAddress)
         ))
-        manager.sendPacketAsync(DisconnectPacket(buildString {
+        manager.sendPacket(DisconnectPacket(buildString {
             append(motd)
             append('\u00a7')
             append(0)
@@ -123,6 +123,7 @@ class LoginPacketListener(manager: ClientManager) : PacketListener(manager) {
     }
 
     private fun performLogin(profile: GameProfile) {
+        manager.server.loginClients -= this
         val playerList = manager.server.playerList
         val player = playerList.makePlayer(manager, profile)
         if (player != null) {

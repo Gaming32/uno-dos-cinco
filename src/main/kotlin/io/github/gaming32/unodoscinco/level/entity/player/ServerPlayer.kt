@@ -12,6 +12,4 @@ class ServerPlayer(profile: GameProfile, val server: MinecraftServer) : Player(p
     var ping = 0
 
     fun chat(message: Component) = connection.manager.sendPacket(message.toChatPacket())
-
-    suspend fun chatAsync(message: Component) = connection.manager.sendPacketAsync(message.toChatPacket())
 }

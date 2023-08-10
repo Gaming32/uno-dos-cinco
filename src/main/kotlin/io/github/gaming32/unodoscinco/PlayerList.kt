@@ -7,34 +7,12 @@ import io.github.gaming32.unodoscinco.network.packet.GameEventPacket
 import io.github.gaming32.unodoscinco.network.packet.Packet
 import io.github.gaming32.unodoscinco.network.packet.TabListPacket
 import io.github.gaming32.unodoscinco.network.packet.TimePacket
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.coroutineScope
-import kotlinx.coroutines.future.asCompletableFuture
-import kotlinx.coroutines.joinAll
-import kotlinx.coroutines.launch
-import java.util.concurrent.CompletableFuture
 
 class PlayerList(val server: MinecraftServer) {
     val allPlayers = mutableListOf<ServerPlayer>()
 
-    fun broadcastPacket(packet: Packet, players: List<ServerPlayer> = allPlayers): CompletableFuture<Unit> =
-        CompletableFuture.allOf(
-            *players.asSequence()
-                .map { it.connection.manager.sendPacket(packet).asCompletableFuture() }
-                .toList()
-                .toTypedArray()
-        ).thenApply {}
-
-    suspend fun broadcastPacketAwait(packet: Packet, players: List<ServerPlayer> = allPlayers) = coroutineScope {
-        broadcastPacketAsync(this, packet, players).joinAll()
-    }
-
-    suspend fun broadcastPacketAsync(
-        scope: CoroutineScope, packet: Packet, players: List<ServerPlayer> = allPlayers
-    ) = scope.run {
-        players.asSequence()
-            .map { launch { it.connection.manager.sendPacketAsync(packet) } }
-            .toList()
+    fun broadcastPacket(packet: Packet, players: List<ServerPlayer> = allPlayers) = players.forEach {
+        it.connection.manager.sendPacket(packet)
     }
 
     fun makePlayer(manager: ClientManager, profile: GameProfile): ServerPlayer? {

@@ -27,9 +27,9 @@ class ServerPlayPacketListener(manager: ClientManager, val player: ServerPlayer)
     override suspend fun onKick(reason: String) {
         if (connectionClosed) return
         manager.server.playerList.allPlayers -= player
-        manager.sendPacketAsync(DisconnectPacket(reason))
+        manager.sendPacketImmediately(DisconnectPacket(reason))
         manager.close()
-        manager.server.sendChatAwait(
+        manager.server.sendChat(
             Component.empty()
                 .color(NamedTextColor.YELLOW)
                 .append(player.displayName)
