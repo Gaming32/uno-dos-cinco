@@ -1,7 +1,7 @@
 package io.github.gaming32.unodoscinco.config.frontendapi
 
 import io.github.gaming32.unodoscinco.level.BlockState
-import io.github.gaming32.unodoscinco.world.TerrainType
+import io.github.gaming32.unodoscinco.level.TerrainType
 import net.kyori.adventure.text.format.NamedTextColor
 import net.kyori.adventure.text.format.TextColor
 import net.kyori.adventure.util.HSVLike

@@ -14,9 +14,23 @@ abstract class PacketListener(val manager: ClientManager) {
 
     open suspend fun handleBeginAuth(packet: BeginAuthPacket) = handleWithException(packet)
 
-    open suspend fun handleDisconnect(packet: DisconnectPacket) = handleWithException(packet)
+    open suspend fun handleChat(packet: ChatPacket) = handleWithException(packet)
+
+    open suspend fun handleTime(packet: TimePacket) = handleWithException(packet)
+
+    open suspend fun handleWorldSpawn(packet: WorldSpawnPacket) = handleWithException(packet)
+
+    open suspend fun handleGameEvent(packet: GameEventPacket) = handleWithException(packet)
+
+    open suspend fun handleTabList(packet: TabListPacket) = handleWithException(packet)
+
+    open suspend fun handlePlayerAbilities(packet: PlayerAbilitiesPacket) = handleWithException(packet)
+
+    open suspend fun handleCustom(packet: CustomPacket) = handleWithException(packet)
 
     open suspend fun handleStatus(packet: StatusPacket) = handleWithException(packet)
+
+    open suspend fun handleDisconnect(packet: DisconnectPacket) = handleWithException(packet)
 
     open fun printName() = manager.socket.remoteAddress.toString()
 

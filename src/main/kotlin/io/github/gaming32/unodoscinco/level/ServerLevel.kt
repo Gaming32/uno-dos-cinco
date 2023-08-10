@@ -1,14 +1,20 @@
 package io.github.gaming32.unodoscinco.level
 
+import io.github.gaming32.unodoscinco.MinecraftServer
 import io.github.gaming32.unodoscinco.level.chunk.EmptyChunk
 import io.github.gaming32.unodoscinco.level.chunk.provider.ChunkProvider
 import io.github.gaming32.unodoscinco.level.chunk.provider.FlatChunkProvider
 import io.github.gaming32.unodoscinco.level.entity.player.ServerPlayer
 
-class ServerLevel {
+class ServerLevel(val server: MinecraftServer) {
+    val info = LevelInfo()
     val players = mutableListOf<ServerPlayer>()
 
     private val chunkProvider: ChunkProvider = FlatChunkProvider()
+
+    init {
+        info.terrainType = server.config.terrainType
+    }
 
     fun getChunk(x: Int, z: Int) = chunkProvider.getChunk(x, z) ?: EmptyChunk
 
@@ -51,4 +57,6 @@ class ServerLevel {
     fun setBlockState(pos: BlockPos, state: BlockState) {
         chunkProvider.getChunk(pos)?.setBlockState(pos, state)
     }
+
+    fun isRaining() = false // TODO: Raining
 }

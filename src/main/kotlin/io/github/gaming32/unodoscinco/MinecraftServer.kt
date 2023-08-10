@@ -8,6 +8,7 @@ import io.github.gaming32.unodoscinco.config.evalConfigFile
 import io.github.gaming32.unodoscinco.level.ServerLevel
 import io.github.gaming32.unodoscinco.network.ClientManager
 import io.github.gaming32.unodoscinco.network.listener.LoginPacketListener
+import io.github.gaming32.unodoscinco.network.packet.ChatPacket.Companion.toChatPacket
 import io.github.oshai.kotlinlogging.KotlinLogging
 import io.ktor.client.*
 import io.ktor.client.engine.cio.*
@@ -20,6 +21,8 @@ import io.ktor.serialization.gson.*
 import kotlinx.cli.ArgParser
 import kotlinx.coroutines.*
 import kotlinx.coroutines.future.await
+import net.kyori.adventure.text.Component
+import net.kyori.adventure.text.serializer.ansi.ANSIComponentSerializer
 import java.nio.file.Files
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.CopyOnWriteArraySet
@@ -55,18 +58,17 @@ class MinecraftServer : Runnable {
 
     lateinit var mainThread: Thread
         private set
-
     private var running = true
 
     internal val loginClients = CopyOnWriteArraySet<LoginPacketListener>()
+    val playerList = PlayerList(this)
 
     private val scheduledPacketTasks = LinkedBlockingQueue<() -> Unit>()
     private val scheduledTasks = LinkedBlockingQueue<TickTask<*>>()
 
-    private val _levels = mutableMapOf<Int, ServerLevel>()
-    val levels: Map<Int, ServerLevel> get() = _levels
+    private val levels = mutableMapOf<Int, ServerLevel>()
 
-    val overworld get() = _levels.getValue(0)
+    val overworld get() = levels.getValue(0)
 
     var tickCount = 0
         private set
@@ -117,10 +119,13 @@ class MinecraftServer : Runnable {
         logger.info { "Server stopped" }
     }
 
+    fun getLevel(id: Int) = levels[id]
+        ?: throw IllegalArgumentException("Unknown dimension id $id")
+
     private fun initLevels() {
-        _levels[0] = ServerLevel()
-        _levels[-1] = ServerLevel()
-        _levels[1] = ServerLevel()
+        levels[0] = ServerLevel(this)
+        levels[-1] = ServerLevel(this)
+        levels[1] = ServerLevel(this)
     }
 
     private fun prepareLevel() {
@@ -242,6 +247,25 @@ class MinecraftServer : Runnable {
             }
             throw e
         }
+    }
+
+    private fun printChat(message: Component) {
+        logger.info { "[CHAT]: " + ANSIComponentSerializer.ansi().serialize(message) }
+    }
+
+    fun sendChat(message: Component): CompletableFuture<Unit> {
+        printChat(message)
+        return playerList.broadcastPacket(message.toChatPacket())
+    }
+
+    suspend fun sendChatAwait(message: Component) {
+        printChat(message)
+        playerList.broadcastPacketAwait(message.toChatPacket())
+    }
+
+    suspend fun sendChatAsync(scope: CoroutineScope, message: Component) {
+        printChat(message)
+        playerList.broadcastPacketAsync(scope, message.toChatPacket())
     }
 
     private data class TickTask<T>(val tick: Int, val action: () -> T, val future: CompletableFuture<T>?)

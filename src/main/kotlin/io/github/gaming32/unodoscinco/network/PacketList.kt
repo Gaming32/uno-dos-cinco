@@ -16,6 +16,13 @@ object PacketList {
         register(0, ::KeepAlivePacket)
         register(1, ::LoginPacket)
         register(2, ::BeginAuthPacket)
+        register(3, ::ChatPacket)
+        register(4, ::TimePacket)
+        register(6, ::WorldSpawnPacket)
+        register(70, ::GameEventPacket)
+        register(201, ::TabListPacket)
+        register(202, ::PlayerAbilitiesPacket)
+        register(250, CustomPacket::invoke)
         register(254) { StatusPacket }
         register(255, ::DisconnectPacket)
     }

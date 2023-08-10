@@ -1,11 +1,13 @@
 package io.github.gaming32.unodoscinco.network.listener
 
 import com.google.gson.JsonObject
+import io.github.gaming32.unodoscinco.GameProfile
 import io.github.gaming32.unodoscinco.VersionInfo
 import io.github.gaming32.unodoscinco.config.MotdCreationContext
 import io.github.gaming32.unodoscinco.config.PingInfo
 import io.github.gaming32.unodoscinco.network.ClientManager
 import io.github.gaming32.unodoscinco.network.packet.*
+import io.github.gaming32.unodoscinco.util.append
 import io.github.gaming32.unodoscinco.util.offlineUuid
 import io.github.gaming32.unodoscinco.util.toUuid
 import io.github.oshai.kotlinlogging.KotlinLogging
@@ -13,18 +15,17 @@ import io.ktor.client.call.*
 import io.ktor.client.request.*
 import io.ktor.network.sockets.*
 import kotlinx.coroutines.future.await
-import java.util.*
+import net.kyori.adventure.text.Component
+import net.kyori.adventure.text.format.NamedTextColor
 import java.util.concurrent.CompletableFuture
 import kotlin.random.Random
 
 private val logger = KotlinLogging.logger {}
 
 class LoginPacketListener(manager: ClientManager) : PacketListener(manager) {
-    private data class LoginInfo(val username: String, val uuid: UUID)
-
     private lateinit var serverId: String
     private var tempUsername: String? = null
-    private var loginInfo: LoginInfo? = null
+    private var profile: GameProfile? = null
     private var loginTimer = 0
     private val loginFuture = CompletableFuture<Unit>()
 
@@ -33,7 +34,11 @@ class LoginPacketListener(manager: ClientManager) : PacketListener(manager) {
         manager.kickAsync("Protocol error")
     }
 
-    override suspend fun onKick(reason: String) = logger.info { "Disconnecting ${printName()}: $reason" }
+    override suspend fun onKick(reason: String) {
+        logger.info { "Disconnecting ${printName()}: $reason" }
+        manager.sendPacketAsync(DisconnectPacket(reason))
+        manager.close()
+    }
 
     override suspend fun handleLogin(packet: LoginPacket) {
         if (tempUsername != null) {
@@ -53,7 +58,7 @@ class LoginPacketListener(manager: ClientManager) : PacketListener(manager) {
                     } + " client than is supported."
             )
         }
-        loginInfo = if (manager.server.config.onlineMode) {
+        profile = if (manager.server.config.onlineMode) {
             val response = manager.server.httpClient.get {
                 url("https://sessionserver.mojang.com/session/minecraft/hasJoined")
                 parameter("username", packet.username)
@@ -63,12 +68,12 @@ class LoginPacketListener(manager: ClientManager) : PacketListener(manager) {
                 return manager.kickAsync("Failed to verify username")
             }
             val body = response.body<JsonObject>()
-            LoginInfo(
+            GameProfile(
                 body["name"].asString,
                 body["id"].asString.toUuid()
             )
         } else {
-            LoginInfo(packet.username, offlineUuid(packet.username))
+            GameProfile(packet.username, offlineUuid(packet.username))
         }
         loginFuture.await() // Wait until logged in so that any subsequent packets are held off until the play phase
     }
@@ -111,15 +116,52 @@ class LoginPacketListener(manager: ClientManager) : PacketListener(manager) {
             return
         }
 
-        loginInfo?.let {
-            loginInfo = null
+        profile?.let {
+            profile = null
             performLogin(it)
         }
     }
 
-    private fun performLogin(loginInfo: LoginInfo) {
-        logger.info { "Login success! $loginInfo" }
-        // TODO: Implement
+    private fun performLogin(profile: GameProfile) {
+        val playerList = manager.server.playerList
+        val player = playerList.makePlayer(manager, profile)
+        if (player != null) {
+            // TODO: Read player data
+            val level = manager.server.getLevel(0)
+            player.level = level
+            logger.info {
+                "${printName()} logged in with entity id ${player.id} at " +
+                    "(${player.position.x}, ${player.position.y}, ${player.position.z})"
+            }
+            val playHandler = ServerPlayPacketListener(manager, player)
+            manager.sendPacket(LoginPacket(
+                player.id,
+                "",
+                level.info.terrainType,
+                1, // TODO: Gamemodes
+                0, // TODO: Dimensions
+                0.toUByte(), // TODO: Difficulty
+                256.toUByte(),
+                manager.server.config.maxPlayers.toUByte()
+            ))
+            manager.sendPacket(CustomPacket("MC|Brand") {
+                write("uno-dos-cinco".encodeToByteArray())
+            })
+            manager.sendPacket(WorldSpawnPacket(0, 0, 0)) // TODO: World spawn
+            manager.sendPacket(PlayerAbilitiesPacket(true, true, true, true)) // TODO: Player abilities
+            playerList.syncTimeAndWeather(player, level)
+            manager.server.sendChat(
+                Component.empty()
+                    .color(NamedTextColor.YELLOW)
+                    .append(player.displayName)
+                    .append(" joined the game.")
+            )
+            playerList.addPlayer(player)
+            // TODO: Teleport
+            manager.sendPacket(TimePacket(0)) // TODO: Time
+            // TODO: Status effects
+            // TODO: Crafting
+        }
         loginFuture.complete(Unit) // Unblock packet handling
     }
 }

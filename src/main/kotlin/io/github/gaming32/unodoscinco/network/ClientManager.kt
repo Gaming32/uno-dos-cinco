@@ -3,7 +3,6 @@ package io.github.gaming32.unodoscinco.network
 import io.github.gaming32.unodoscinco.MinecraftServer
 import io.github.gaming32.unodoscinco.network.listener.LoginPacketListener
 import io.github.gaming32.unodoscinco.network.listener.PacketListener
-import io.github.gaming32.unodoscinco.network.packet.DisconnectPacket
 import io.github.gaming32.unodoscinco.network.packet.Packet
 import io.github.gaming32.unodoscinco.util.CloseGuardInputStream
 import io.github.oshai.kotlinlogging.KotlinLogging
@@ -24,7 +23,6 @@ class ClientManager(val server: MinecraftServer, val socket: Socket) : AutoClose
     val writeChannel = socket.openWriteChannel()
 
     var listener: PacketListener = LoginPacketListener(this)
-        private set
 
     private val sendLock = Mutex()
 
@@ -36,6 +34,11 @@ class ClientManager(val server: MinecraftServer, val socket: Socket) : AutoClose
                     ?: throw IllegalArgumentException("Unknown packet ID $packetId")
                 val packet = withContext(Dispatchers.IO) {
                     constructor(DataInputStream(CloseGuardInputStream(readChannel.toInputStream())))
+                }
+                if (packet.packetId != packetId) {
+                    throw IllegalArgumentException(
+                        "Read packet's ID did not match read packet ID. ${packet.packetId} != $packetId"
+                    )
                 }
                 logger.debug { "Handling $packet with $listener" }
                 packet.handle(listener)
@@ -62,11 +65,9 @@ class ClientManager(val server: MinecraftServer, val socket: Socket) : AutoClose
         return server.networkingScope.launch { send(bytes) }
     }
 
-    suspend fun kickAsync(reason: String) {
-        listener.onKick(reason)
-        sendPacketAsync(DisconnectPacket(reason))
-        close()
-    }
+    suspend fun kickAsync(reason: String) = listener.onKick(reason)
 
     fun kick(reason: String) = server.networkingScope.launch { kickAsync(reason) }
+
+    val isClosed get() = socket.isClosed
 }

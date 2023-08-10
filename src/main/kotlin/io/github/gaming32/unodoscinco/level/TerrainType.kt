@@ -1,4 +1,4 @@
-package io.github.gaming32.unodoscinco.world
+package io.github.gaming32.unodoscinco.level
 
 enum class TerrainType {
     DEFAULT,

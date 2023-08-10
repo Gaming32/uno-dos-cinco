@@ -3,7 +3,7 @@ package io.github.gaming32.unodoscinco.config
 import io.github.gaming32.unodoscinco.config.frontendapi.path
 import io.github.gaming32.unodoscinco.config.frontendapi.regex
 import io.github.gaming32.unodoscinco.level.BlockState
-import io.github.gaming32.unodoscinco.world.TerrainType
+import io.github.gaming32.unodoscinco.level.TerrainType
 import net.kyori.adventure.text.Component
 import java.nio.file.Path
 import kotlin.script.experimental.annotations.KotlinScript

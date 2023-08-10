@@ -1,9 +1,9 @@
 package io.github.gaming32.unodoscinco.network.packet
 
+import io.github.gaming32.unodoscinco.level.TerrainType
 import io.github.gaming32.unodoscinco.network.listener.PacketListener
 import io.github.gaming32.unodoscinco.network.readMcString
 import io.github.gaming32.unodoscinco.network.writeMcString
-import io.github.gaming32.unodoscinco.world.TerrainType
 import java.io.DataInputStream
 import java.io.DataOutputStream
 
