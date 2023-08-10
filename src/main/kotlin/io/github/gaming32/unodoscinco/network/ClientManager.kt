@@ -12,7 +12,6 @@ import io.ktor.utils.io.jvm.javaio.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.channels.ClosedReceiveChannelException
-import kotlinx.coroutines.channels.ClosedSendChannelException
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
@@ -22,7 +21,7 @@ import java.io.DataInputStream
 
 private val logger = KotlinLogging.logger {}
 
-class ClientManager(val server: MinecraftServer, val socket: Socket) : AutoCloseable by socket {
+class ClientManager(val server: MinecraftServer, val socket: Socket) {
     val readChannel = socket.openReadChannel()
     val writeChannel = socket.openWriteChannel()
 
@@ -31,10 +30,14 @@ class ClientManager(val server: MinecraftServer, val socket: Socket) : AutoClose
     private val sendLock = Mutex()
     private val sendChannel = Channel<Packet>(Channel.UNLIMITED)
 
+    private var timeSinceRead = 0
+    private var terminationReason: String? = null
+
     suspend fun runReceiver() = coroutineScope {
         try {
             while (!readChannel.isClosedForRead) {
                 val packetId = readChannel.readByte().toUByte()
+                timeSinceRead = 0
                 val constructor = PacketList.constructors[packetId]
                     ?: throw IllegalArgumentException("Unknown packet ID $packetId")
                 val packet = withContext(Dispatchers.IO) {
@@ -49,12 +52,13 @@ class ClientManager(val server: MinecraftServer, val socket: Socket) : AutoClose
                 packet.handle(listener)
             }
         } catch (e: Exception) {
-            if (e !is ClosedReceiveChannelException) {
-                logger.debug(e) { "Exception in packet receiving" }
+            if (e !is ClosedReceiveChannelException && terminationReason == null) {
+                logger.error(e) { "Exception in packet handling" }
                 kickAsync(e.toString())
             }
         } finally {
             (listener as? LoginPacketListener)?.let(server.loginClients::remove)
+            terminate("disconnect.genericReason")
         }
     }
 
@@ -68,11 +72,19 @@ class ClientManager(val server: MinecraftServer, val socket: Socket) : AutoClose
                 }
             }
         } catch (e: Exception) {
-            if (e !is ClosedSendChannelException) {
+            if (e !is ClosedWriteChannelException && e !is ClosedReceiveChannelException && terminationReason == null) {
                 logger.error(e) { "Exception in packet sending" }
                 // Can't kick!
+                terminate("disconnect.genericReason")
             }
         }
+    }
+
+    fun tick() {
+        if (++timeSinceRead > 1200) {
+            terminate("disconnect.timeout")
+        }
+        terminationReason?.let(listener::onTerminate)
     }
 
     fun sendPacket(packet: Packet) {
@@ -91,5 +103,9 @@ class ClientManager(val server: MinecraftServer, val socket: Socket) : AutoClose
 
     fun kick(reason: String) = server.networkingScope.launch { kickAsync(reason) }
 
-    val isClosed get() = socket.isClosed
+    fun terminate(reason: String) {
+        if (socket.isClosed) return
+        terminationReason = reason
+        socket.close()
+    }
 }

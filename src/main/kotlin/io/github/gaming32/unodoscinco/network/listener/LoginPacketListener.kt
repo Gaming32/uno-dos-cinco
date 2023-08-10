@@ -37,7 +37,12 @@ class LoginPacketListener(manager: ClientManager) : PacketListener(manager) {
     override suspend fun onKick(reason: String) {
         logger.info { "Disconnecting ${printName()}: $reason" }
         manager.sendPacketImmediately(DisconnectPacket(reason))
-        manager.close()
+        @Suppress("BlockingMethodInNonBlockingContext")
+        manager.socket.close()
+    }
+
+    override fun onTerminate(reason: String) {
+        logger.info { "${printName()} lost connection" }
     }
 
     override suspend fun handleLogin(packet: LoginPacket) {
@@ -93,14 +98,15 @@ class LoginPacketListener(manager: ClientManager) : PacketListener(manager) {
         val motd = config.explicitMotd ?: config.motdGenerator(MotdCreationContext(
             server, PingInfo(manager.socket.remoteAddress as InetSocketAddress)
         ))
-        manager.sendPacket(DisconnectPacket(buildString {
+        manager.sendPacketImmediately(DisconnectPacket(buildString {
             append(motd)
             append('\u00a7')
             append(0)
             append('\u00a7')
             append(config.maxPlayers)
         }))
-        manager.close()
+        @Suppress("BlockingMethodInNonBlockingContext")
+        manager.socket.close()
     }
 
     override fun printName(): String {
@@ -111,15 +117,15 @@ class LoginPacketListener(manager: ClientManager) : PacketListener(manager) {
     }
 
     fun tick() {
-        if (++loginTimer > 600) {
-            manager.kick("Took too long to log in")
-            return
-        }
-
         profile?.let {
             profile = null
             performLogin(it)
         }
+        if (++loginTimer > 600) {
+            manager.kick("Took too long to log in")
+            return
+        }
+        manager.tick()
     }
 
     private fun performLogin(profile: GameProfile) {

@@ -8,6 +8,8 @@ abstract class PacketListener(val manager: ClientManager) {
 
     abstract suspend fun onKick(reason: String)
 
+    abstract fun onTerminate(reason: String)
+
     open suspend fun handleKeepAlive(packet: KeepAlivePacket) = handleWithException(packet)
 
     open suspend fun handleLogin(packet: LoginPacket) = handleWithException(packet)

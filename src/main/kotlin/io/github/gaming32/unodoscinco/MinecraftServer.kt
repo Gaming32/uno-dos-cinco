@@ -133,6 +133,9 @@ class MinecraftServer : Runnable {
 
     private fun runTick(targetTickEnd: Long) {
         loginClients.forEach(LoginPacketListener::tick)
+        for (player in playerList.allPlayers) {
+            player.connection.tick()
+        }
         while (true) {
             val task = scheduledPacketTasks.poll() ?: break
             task()

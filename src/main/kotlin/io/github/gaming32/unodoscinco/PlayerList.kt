@@ -44,4 +44,9 @@ class PlayerList(val server: MinecraftServer) {
 
         broadcastPacket(TabListPacket(player.profile.name, true, player.ping))
     }
+
+    fun removePlayer(player: ServerPlayer) {
+        allPlayers -= player
+        // TODO: Implement rest
+    }
 }
