@@ -5,8 +5,10 @@ import io.github.gaming32.unodoscinco.level.chunk.EmptyChunk
 import io.github.gaming32.unodoscinco.level.chunk.provider.ChunkProvider
 import io.github.gaming32.unodoscinco.level.chunk.provider.FlatChunkProvider
 import io.github.gaming32.unodoscinco.level.entity.player.ServerPlayer
+import java.nio.file.Path
+import kotlin.io.path.createDirectories
 
-class ServerLevel(val server: MinecraftServer) {
+class ServerLevel(val server: MinecraftServer, val baseDir: Path) {
     val info = LevelInfo()
     val players = mutableListOf<ServerPlayer>()
 
@@ -14,6 +16,7 @@ class ServerLevel(val server: MinecraftServer) {
 
     init {
         info.terrainType = server.config.terrainType
+        baseDir.createDirectories()
     }
 
     fun getChunk(x: Int, z: Int) = chunkProvider.getChunk(x, z) ?: EmptyChunk

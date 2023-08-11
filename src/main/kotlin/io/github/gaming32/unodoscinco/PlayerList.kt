@@ -50,6 +50,7 @@ class PlayerList(val server: MinecraftServer) {
     fun removePlayer(player: ServerPlayer) {
         allPlayers -= player
         // TODO: Implement rest
+        broadcastPacket(TabListPacket(player.profile.name, false, 9999))
     }
 
     fun tick() {

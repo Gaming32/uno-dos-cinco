@@ -30,6 +30,7 @@ import java.util.concurrent.Executors
 import java.util.concurrent.LinkedBlockingQueue
 import kotlin.concurrent.thread
 import kotlin.io.path.Path
+import kotlin.io.path.div
 import kotlin.io.path.isRegularFile
 import kotlin.time.Duration.Companion.milliseconds
 
@@ -123,9 +124,9 @@ class MinecraftServer : Runnable {
         ?: throw IllegalArgumentException("Unknown dimension id $id")
 
     private fun initLevels() {
-        levels[0] = ServerLevel(this)
-        levels[-1] = ServerLevel(this)
-        levels[1] = ServerLevel(this)
+        levels[0] = ServerLevel(this, config.worldDir)
+        levels[-1] = ServerLevel(this, overworld.baseDir / "DIM-1")
+        levels[1] = ServerLevel(this, overworld.baseDir / "DIM1")
     }
 
     private fun prepareLevel() {

@@ -38,8 +38,16 @@ class ClientManager(val server: MinecraftServer, val socket: Socket) {
             while (!readChannel.isClosedForRead) {
                 val packetId = readChannel.readByte().toUByte()
                 timeSinceRead = 0
-                val constructor = PacketList.constructors[packetId]
-                    ?: throw IllegalArgumentException("Unknown packet ID $packetId")
+                val constructor = try {
+                     PacketList.constructors[packetId]
+                        ?: throw IllegalArgumentException("Unknown packet ID $packetId")
+                } catch (e: IllegalArgumentException) {
+                    if (packetId < 128.toUByte()) {
+                        val data = ByteArray(packetId.toInt()).also { readChannel.readFully(it) }.decodeToString()
+                        logger.info { "Modern packet received? $data" }
+                    }
+                    throw e
+                }
                 val packet = withContext(Dispatchers.IO) {
                     constructor(DataInputStream(CloseGuardInputStream(readChannel.toInputStream())))
                 }

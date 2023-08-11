@@ -69,7 +69,7 @@ class ServerPlayPacketListener(manager: ClientManager, val player: ServerPlayer)
         player.ping = (player.ping * 3 + roundTripTime) / 4
     }
 
-    override suspend fun handleMovement(packet: MovementPacket) {
+    override suspend fun handleMovement(packet: MovementPacket) = mainThread {
         // TODO: Implement
     }
 
