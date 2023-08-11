@@ -164,7 +164,7 @@ class LoginPacketListener(manager: ClientManager) : PacketListener(manager) {
                     .append(" joined the game.")
             )
             playerList.addPlayer(player)
-            // TODO: Teleport
+            playHandler.teleport(player.xPos, player.yPos, player.zPos, player.yaw, player.pitch)
             manager.sendPacket(TimePacket(0)) // TODO: Time
             // TODO: Status effects
             // TODO: Crafting

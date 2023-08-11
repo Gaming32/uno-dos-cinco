@@ -141,7 +141,7 @@ class MinecraftServer : Runnable {
             task()
         }
 
-        // TODO: Actual ticking
+        playerList.tick()
 
         while (true) {
             val task = scheduledTasks.peek() ?: break

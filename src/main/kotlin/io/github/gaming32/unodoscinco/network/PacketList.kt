@@ -19,10 +19,14 @@ object PacketList {
         register(3, ::ChatPacket)
         register(4, ::TimePacket)
         register(6, ::WorldSpawnPacket)
+        register(10, ::MovementPacket)
+        register(11, MovementPacket::Position)
+        register(12, MovementPacket::Rotation)
+        register(13, MovementPacket::PositionRotation)
         register(70, ::GameEventPacket)
         register(201, ::TabListPacket)
         register(202, ::PlayerAbilitiesPacket)
-        register(250, CustomPacket::invoke)
+        register(250, ::CustomPacket)
         register(254) { StatusPacket }
         register(255, ::DisconnectPacket)
     }

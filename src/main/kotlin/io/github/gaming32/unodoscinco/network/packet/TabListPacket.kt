@@ -8,12 +8,12 @@ import java.io.DataOutputStream
 
 data class TabListPacket(val username: String, val add: Boolean, val ping: Int) : Packet(201) {
     constructor(input: DataInputStream) : this(
-        input.readMcString(16), input.readByte() != 0.toByte(), input.readShort().toInt()
+        input.readMcString(16), input.readBoolean(), input.readShort().toInt()
     )
 
     override fun write(output: DataOutputStream) {
         output.writeMcString(username)
-        output.writeByte(if (add) 1 else 0)
+        output.writeBoolean(add)
         output.writeShort(ping)
     }
 

@@ -22,13 +22,15 @@ abstract class PacketListener(val manager: ClientManager) {
 
     open suspend fun handleWorldSpawn(packet: WorldSpawnPacket) = handleWithException(packet)
 
+    open suspend fun handleMovement(packet: MovementPacket) = handleWithException(packet)
+
     open suspend fun handleGameEvent(packet: GameEventPacket) = handleWithException(packet)
 
     open suspend fun handleTabList(packet: TabListPacket) = handleWithException(packet)
 
     open suspend fun handlePlayerAbilities(packet: PlayerAbilitiesPacket) = handleWithException(packet)
 
-    open suspend fun handleCustom(packet: CustomPacket) = handleWithException(packet)
+    open suspend fun handleCustom(packet: CustomPacket) = Unit
 
     open suspend fun handleStatus(packet: StatusPacket) = handleWithException(packet)
 

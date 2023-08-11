@@ -11,6 +11,8 @@ import io.github.gaming32.unodoscinco.network.packet.TimePacket
 class PlayerList(val server: MinecraftServer) {
     val allPlayers = mutableListOf<ServerPlayer>()
 
+    private var pingRound = 0
+
     fun broadcastPacket(packet: Packet, players: List<ServerPlayer> = allPlayers) = players.forEach {
         it.connection.manager.sendPacket(packet)
     }
@@ -48,5 +50,14 @@ class PlayerList(val server: MinecraftServer) {
     fun removePlayer(player: ServerPlayer) {
         allPlayers -= player
         // TODO: Implement rest
+    }
+
+    fun tick() {
+        if (++pingRound > 200 && pingRound > server.config.maxPlayers + 1) {
+            pingRound = 0
+        }
+        allPlayers.getOrNull(pingRound)?.let {
+            broadcastPacket(TabListPacket(it.profile.name, true, it.ping))
+        }
     }
 }

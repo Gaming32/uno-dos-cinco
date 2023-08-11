@@ -9,26 +9,6 @@ import java.io.DataOutputStream
 
 data class CustomPacket(val channel: String, val length: Int, val data: ByteArray?) : Packet(250) {
     companion object {
-        operator fun invoke(input: DataInputStream): CustomPacket {
-            val channel = input.readMcString(16)
-            val length = input.readShort().toInt()
-            return CustomPacket(
-                channel, length,
-                if (length in 1..<32767) {
-                    ByteArray(length).also(input::readFully)
-                } else {
-                    null
-                }
-            )
-        }
-
-        inline operator fun invoke(channel: String, action: DataOutputStream.() -> Unit): CustomPacket {
-            val baos = ByteArrayOutputStream()
-            val dos = DataOutputStream(baos)
-            action(dos)
-            dos.close()
-            return CustomPacket(channel, baos.size(), baos.toByteArray())
-        }
     }
 
     override fun write(output: DataOutputStream) {
@@ -56,4 +36,25 @@ data class CustomPacket(val channel: String, val length: Int, val data: ByteArra
         result = 31 * result + data.contentHashCode()
         return result
     }
+}
+
+fun CustomPacket(input: DataInputStream): CustomPacket {
+    val channel = input.readMcString(16)
+    val length = input.readShort().toInt()
+    return CustomPacket(
+        channel, length,
+        if (length in 1..<32767) {
+            ByteArray(length).also(input::readFully)
+        } else {
+            null
+        }
+    )
+}
+
+inline fun CustomPacket(channel: String, action: DataOutputStream.() -> Unit): CustomPacket {
+    val baos = ByteArrayOutputStream()
+    val dos = DataOutputStream(baos)
+    action(dos)
+    dos.close()
+    return CustomPacket(channel, baos.size(), baos.toByteArray())
 }
