@@ -252,12 +252,8 @@ class MinecraftServer : Runnable {
         }
     }
 
-    private fun printChat(message: Component) {
-        logger.info { "[CHAT]: " + ANSIComponentSerializer.ansi().serialize(message) }
-    }
-
     fun sendChat(message: Component) {
-        printChat(message)
+        logger.info { "[CHAT]: " + ANSIComponentSerializer.ansi().serialize(message) }
         playerList.broadcastPacket(message.toChatPacket())
     }
 

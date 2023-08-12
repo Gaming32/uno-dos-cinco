@@ -10,5 +10,5 @@ abstract class Player(val profile: GameProfile) : LivingEntity() {
         get() = profile.id
         set(_) = throw UnsupportedOperationException("Cannot set Player.uuid")
 
-    override val displayName get() = Component.text(profile.name)
+    override val displayName: Component get() = Component.text(profile.name)
 }

@@ -7,9 +7,10 @@ import io.github.gaming32.unodoscinco.network.packet.GameEventPacket
 import io.github.gaming32.unodoscinco.network.packet.Packet
 import io.github.gaming32.unodoscinco.network.packet.TabListPacket
 import io.github.gaming32.unodoscinco.network.packet.TimePacket
+import java.util.concurrent.CopyOnWriteArrayList
 
 class PlayerList(val server: MinecraftServer) {
-    val allPlayers = mutableListOf<ServerPlayer>()
+    val allPlayers: MutableList<ServerPlayer> = CopyOnWriteArrayList()
 
     private var pingRound = 0
 

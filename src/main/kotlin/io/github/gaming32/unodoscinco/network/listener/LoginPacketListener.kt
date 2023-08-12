@@ -7,15 +7,16 @@ import io.github.gaming32.unodoscinco.config.MotdCreationContext
 import io.github.gaming32.unodoscinco.config.PingInfo
 import io.github.gaming32.unodoscinco.network.ClientManager
 import io.github.gaming32.unodoscinco.network.packet.*
-import io.github.gaming32.unodoscinco.util.append
 import io.github.gaming32.unodoscinco.util.offlineUuid
+import io.github.gaming32.unodoscinco.util.plus
+import io.github.gaming32.unodoscinco.util.toComponent
 import io.github.gaming32.unodoscinco.util.toUuid
 import io.github.oshai.kotlinlogging.KotlinLogging
 import io.ktor.client.call.*
 import io.ktor.client.request.*
 import io.ktor.network.sockets.*
 import kotlinx.coroutines.future.await
-import net.kyori.adventure.text.Component
+import net.kyori.adventure.extra.kotlin.plus
 import net.kyori.adventure.text.format.NamedTextColor
 import java.util.concurrent.CompletableFuture
 import kotlin.random.Random
@@ -31,7 +32,7 @@ class LoginPacketListener(manager: ClientManager) : PacketListener(manager) {
 
     override suspend fun handleWithException(packet: Packet) {
         logger.debug { "${this::class} wasn't prepared to deal with a ${packet::class}" }
-        manager.kickAsync("Protocol error")
+        manager.kickImmediately("Protocol error")
     }
 
     override suspend fun onKick(reason: String) {
@@ -47,14 +48,14 @@ class LoginPacketListener(manager: ClientManager) : PacketListener(manager) {
 
     override suspend fun handleLogin(packet: LoginPacket) {
         if (tempUsername != null) {
-            return manager.kickAsync("Cannot login multiple times!")
+            return manager.kickImmediately("Cannot login multiple times!")
         }
         if (!packet.username.matches(manager.server.config.usernameRegex)) {
-            return manager.kickAsync("Invalid username")
+            return manager.kickImmediately("Invalid username")
         }
         tempUsername = packet.username
         if (packet.protocolVersion != VersionInfo.PROTOCOL) {
-            return manager.kickAsync(
+            return manager.kickImmediately(
                 "This server only supports 1.2.5 clients. You are using " +
                     if (packet.protocolVersion > VersionInfo.PROTOCOL) {
                         "a newer"
@@ -70,7 +71,7 @@ class LoginPacketListener(manager: ClientManager) : PacketListener(manager) {
                 parameter("serverId", serverId)
             }
             if (response.status.value != 200) {
-                return manager.kickAsync("Failed to verify username")
+                return manager.kickImmediately("Failed to verify username")
             }
             val body = response.body<JsonObject>()
             GameProfile(
@@ -157,12 +158,7 @@ class LoginPacketListener(manager: ClientManager) : PacketListener(manager) {
             manager.sendPacket(WorldSpawnPacket(0, 0, 0)) // TODO: World spawn
             manager.sendPacket(PlayerAbilitiesPacket(true, true, true, true)) // TODO: Player abilities
             playerList.syncTimeAndWeather(player, level)
-            manager.server.sendChat(
-                Component.empty()
-                    .color(NamedTextColor.YELLOW)
-                    .append(player.displayName)
-                    .append(" joined the game.")
-            )
+            manager.server.sendChat("".toComponent(NamedTextColor.YELLOW) + player.displayName + " joined the game.")
             playerList.addPlayer(player)
             playHandler.teleport(player.xPos, player.yPos, player.zPos, player.yaw, player.pitch)
             manager.sendPacket(TimePacket(0)) // TODO: Time

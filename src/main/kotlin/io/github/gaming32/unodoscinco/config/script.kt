@@ -17,7 +17,7 @@ object ConfigCompilationConfiguration : ScriptCompilationConfiguration({
     baseClass(ServerConfig::class)
     jvm {
         defaultImports(
-            "io.github.gaming32.unodoscinco.*",
+            "io.github.gaming32.unodoscinco.util.*",
             "io.github.gaming32.unodoscinco.config.frontendapi.*",
             "net.kyori.adventure.extra.kotlin.*",
             "net.kyori.adventure.util.*",

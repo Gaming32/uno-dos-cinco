@@ -1,11 +1,13 @@
 package io.github.gaming32.unodoscinco.network.listener
 
+import io.github.gaming32.unodoscinco.config.ChatFormatContext
 import io.github.gaming32.unodoscinco.level.entity.player.ServerPlayer
 import io.github.gaming32.unodoscinco.network.ClientManager
 import io.github.gaming32.unodoscinco.network.packet.*
-import io.github.gaming32.unodoscinco.util.append
+import io.github.gaming32.unodoscinco.util.plus
+import io.github.gaming32.unodoscinco.util.toComponent
 import io.github.oshai.kotlinlogging.KotlinLogging
-import net.kyori.adventure.text.Component
+import net.kyori.adventure.extra.kotlin.plus
 import net.kyori.adventure.text.format.NamedTextColor
 import kotlin.random.Random
 
@@ -33,7 +35,7 @@ class ServerPlayPacketListener(manager: ClientManager, val player: ServerPlayer)
 
     override suspend fun handleWithException(packet: Packet) {
         logger.warn { "${this::class} wasn't prepared to deal with a ${packet::class}" }
-        manager.kickAsync("Protocol error, unexpected packet")
+        manager.kickImmediately("Protocol error, unexpected packet")
     }
 
     override suspend fun onKick(reason: String) {
@@ -41,24 +43,14 @@ class ServerPlayPacketListener(manager: ClientManager, val player: ServerPlayer)
         manager.sendPacketImmediately(DisconnectPacket(reason))
         @Suppress("BlockingMethodInNonBlockingContext")
         manager.socket.close()
-        manager.server.sendChat(
-            Component.empty()
-                .color(NamedTextColor.YELLOW)
-                .append(player.displayName)
-                .append(" left the game.")
-        )
+        manager.server.sendChat("".toComponent(NamedTextColor.YELLOW) + player.displayName + " left the game.")
         manager.server.playerList.removePlayer(player)
         connectionClosed = true
     }
 
     override fun onTerminate(reason: String) {
         logger.info { "${printName()} lost connection: $reason" }
-        manager.server.sendChat(
-            Component.empty()
-                .color(NamedTextColor.YELLOW)
-                .append(player.displayName)
-                .append(" left the game.")
-        )
+        manager.server.sendChat("".toComponent(NamedTextColor.YELLOW) + player.displayName + " left the game.")
         manager.server.playerList.removePlayer(player)
         connectionClosed = true
     }
@@ -67,6 +59,22 @@ class ServerPlayPacketListener(manager: ClientManager, val player: ServerPlayer)
         if (packet.id != pingId) return
         val roundTripTime = (System.nanoTime() / 1_000_000L - lastKeepAliveTime).toInt()
         player.ping = (player.ping * 3 + roundTripTime) / 4
+    }
+
+    override suspend fun handleChat(packet: ChatPacket) {
+        if (packet.message.length > 100) {
+            return manager.kickImmediately("Chat message too long")
+        }
+        if (packet.message.any { it.code == 167 || it.code == 127 || it < ' ' }) {
+            return manager.kickImmediately("Illegal characters in chat")
+        }
+
+        manager.server.sendChat(manager.server.config.chatFormatter(ChatFormatContext(player, packet.message)))
+
+        spamCounter += 20
+        if (spamCounter > 200) {
+            manager.kickImmediately("disconnect.spam")
+        }
     }
 
     override suspend fun handleMovement(packet: MovementPacket) = mainThread {

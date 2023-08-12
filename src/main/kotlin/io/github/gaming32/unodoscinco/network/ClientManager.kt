@@ -43,7 +43,7 @@ class ClientManager(val server: MinecraftServer, val socket: Socket) {
                         ?: throw IllegalArgumentException("Unknown packet ID $packetId")
                 } catch (e: IllegalArgumentException) {
                     if (packetId < 128.toUByte()) {
-                        val data = ByteArray(packetId.toInt()).also { readChannel.readFully(it) }.decodeToString()
+                        val data = ByteArray(packetId.toInt()).also { readChannel.readAvailable(it) }.decodeToString()
                         logger.info { "Modern packet received? $data" }
                     }
                     throw e
@@ -62,7 +62,7 @@ class ClientManager(val server: MinecraftServer, val socket: Socket) {
         } catch (e: Exception) {
             if (e !is ClosedReceiveChannelException && terminationReason == null) {
                 logger.error(e) { "Exception in packet handling" }
-                kickAsync(e.toString())
+                kickImmediately(e.toString())
             }
         } finally {
             (listener as? LoginPacketListener)?.let(server.loginClients::remove)
@@ -107,9 +107,9 @@ class ClientManager(val server: MinecraftServer, val socket: Socket) {
         }
     }
 
-    suspend fun kickAsync(reason: String) = listener.onKick(reason)
+    suspend fun kickImmediately(reason: String) = listener.onKick(reason)
 
-    fun kick(reason: String) = server.networkingScope.launch { kickAsync(reason) }
+    fun kick(reason: String) = server.networkingScope.launch { kickImmediately(reason) }
 
     fun terminate(reason: String) {
         if (socket.isClosed) return

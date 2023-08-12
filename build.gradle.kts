@@ -36,6 +36,8 @@ dependencies {
     api("net.kyori:adventure-text-serializer-plain:4.14.0")
 
     api("com.google.code.gson:gson:2.10.1")
+
+//    api("org.apache.commons:commons-text:1.10.0")
 }
 
 kotlin {

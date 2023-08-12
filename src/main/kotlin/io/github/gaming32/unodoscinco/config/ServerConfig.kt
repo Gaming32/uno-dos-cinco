@@ -4,6 +4,9 @@ import io.github.gaming32.unodoscinco.config.frontendapi.path
 import io.github.gaming32.unodoscinco.config.frontendapi.regex
 import io.github.gaming32.unodoscinco.level.BlockState
 import io.github.gaming32.unodoscinco.level.TerrainType
+import io.github.gaming32.unodoscinco.util.plus
+import io.github.gaming32.unodoscinco.util.toComponent
+import net.kyori.adventure.extra.kotlin.plus
 import net.kyori.adventure.text.Component
 import java.nio.file.Path
 import kotlin.script.experimental.annotations.KotlinScript
@@ -88,7 +91,7 @@ abstract class ServerConfig {
         motdGenerator = generator
     }
 
-    var chatFormatter: ChatFormatter = { Component.text(message) }
+    var chatFormatter: ChatFormatter = { "<".toComponent() + sender.displayName + "> $message" }
         private set
 
     protected fun formatChat(formatter: ChatFormatter) {
